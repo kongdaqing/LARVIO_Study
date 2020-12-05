@@ -1,1 +1,2 @@
-~/YOUR_PATH/LARVIO/build/larvio ~/YOUR_PATH_TO_DATASET/MH_01/mav0/imu0/data.csv ~/YOUR_PATH_TO_DATASET/MH_01/mav0/cam0/data.csv ~/YOUR_PATH_TO_DATASET/MH_01/mav0/cam0/data ~/YOUR_PATH/LARVIO/config/euroc.yaml
+YOUR_PATH_TO_DATASET=$1
+./build/larvio ${YOUR_PATH_TO_DATASET}/mav0/imu0/data.csv ${YOUR_PATH_TO_DATASET}/mav0/cam0/data.csv ${YOUR_PATH_TO_DATASET}/mav0/cam0/data ./config/euroc.yaml
