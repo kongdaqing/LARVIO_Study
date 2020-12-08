@@ -133,6 +133,7 @@ void System::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     std_msgs::Header header = cvCPtr->header;
 
     // Decide if use img msg in buffer.
+    //?KDQ: 假如第一个条件不成立，也即是imu_msg_buffer非空，那么第二个条件imu_msg_buffer.end()-1是不存在实体的，这个不就导致内存异常了么
     bool bUseBuff = false;
     if (!imu_msg_buffer.empty() ||
         (imu_msg_buffer.end()-1)->timeStampToSec-msgPtr->timeStampToSec<-imu_img_timeTh) {

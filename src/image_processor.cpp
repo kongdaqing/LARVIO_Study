@@ -147,6 +147,7 @@ bool ImageProcessor::processImage(const ImageDataPtr& msg,
     createImagePyramids();
 
     // Initialize ORBDescriptor pointer
+    //KDQ?:增加使用orb特征匹配是提高了特征匹配准确度，但是不会增加计算量么？
     currORBDescriptor_ptr.reset(new ORBdescriptor(curr_pyramid_[0], 2, processor_config.pyramid_levels));
 
     // Get current image time
@@ -251,6 +252,8 @@ void ImageProcessor::integrateImuData(Matx33f& cam_R_p2c,
 
     // Transform the mean angular velocity from the IMU
     // frame to the cam0 and cam1 frames.
+    //KDQ?:R_cam_imu不就是从imu到cam的旋转矩阵么，为啥还要转置？ 
+    //oh-oh: 因为作者定义R_cam_imu和我们习惯不一样，这个就是表示cam到imu的旋转矩阵
     Vec3f cam_mean_ang_vel = R_cam_imu.t() * mean_ang_vel;
 
     // Compute the relative rotation.
@@ -320,6 +323,7 @@ void ImageProcessor::createImagePyramids() {
     // CLAHE
     cv::Mat img_;
     if (processor_config.flag_equalize) {
+        //KDQ: 用自适应直方图均衡化处理图片，提高图像对比度和灰度分布的动态范围，降低过曝和过暗的影响
         cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
         clahe->apply(curr_img, img_);
     }
@@ -340,11 +344,12 @@ bool ImageProcessor::initializeFirstFrame() {
 
     // Detect new features on the frist image.
     vector<Point2f>().swap(new_pts_);
+    //KDQ:根据特征点的shiTomashi得分进行降序排列，如果需要的特征点数量小于提取的点数则取前面的
     cv::goodFeaturesToTrack(img, new_pts_, processor_config.max_features_num, 0.01, processor_config.min_distance);
 
     // Initialize last publish time
     last_pub_time = curr_img_ptr->timeStampToSec;
-
+　　 //KDQ!:20个点就可以了？这个要求是不是太低了
     if (new_pts_.size()>20)
         return true;
     else
@@ -536,7 +541,7 @@ bool ImageProcessor::initializeFirstFeatures(
     return true;
 }
 
-
+//KDQ?:除了KLT光流追踪而后又用了：KLT反向追踪；描述子匹配筛选和RANSAC基础矩阵筛选出最终批评的特征点，这样做耗时会不会太大,需要评估一下
 void ImageProcessor::trackFeatures() {
     // Number of the features before tracking.
     before_tracking = prev_pts_.size();
@@ -547,8 +552,9 @@ void ImageProcessor::trackFeatures() {
         printf("No feature in prev img !\n");
         return;
     }
-
+    //Step-1:KLT前向光流追踪特征点
     // Pridict features in current image
+    //KDQ:直接用两帧之间旋转来预测特征点位置，实际因为不知道特征点深度以及两帧之间的相对位置变化所以并不能预测的很准确，这一点肯定不如rovio准确
     vector<Point2f> curr_points(prev_pts_.size());
     predictFeatureTracking(
         prev_pts_, R_Prev2Curr, cam_intrinsics, curr_points);
@@ -603,6 +609,7 @@ void ImageProcessor::trackFeatures() {
     // debug log
     if (0 == after_tracking) {
         printf("No feature is tracked !");
+        //KDQ?:用swap节省删除元素的成本？
         vector<Point2f>().swap(prev_pts_);
         vector<Point2f>().swap(curr_pts_);
         vector<FeatureIDType>().swap(pts_ids_);
@@ -611,7 +618,7 @@ void ImageProcessor::trackFeatures() {
         vector<Mat>().swap(vOrbDescriptors);
         return;
     }
-
+    //Step-２:KLT逆向光流追踪特征点
     // Using reverse LK optical flow tracking to eliminate outliers
     vector<unsigned char> reverse_inliers(curr_inImg_points_.size());
     vector<Point2f> prev_pts_cpy(prev_inImg_points_);
@@ -672,7 +679,7 @@ void ImageProcessor::trackFeatures() {
         vector<Mat>().swap(vOrbDescriptors);
         return;
     }
-
+　　 //Step-３:orb特征点匹配进一步筛选特征点
     // Mark as outliers if descriptor distance is too large
     vector<int> levels(prev_inImg_points.size(), 0);
     Mat prevDescriptors, currDescriptors;
@@ -729,7 +736,7 @@ void ImageProcessor::trackFeatures() {
         vector<Mat>().swap(vOrbDescriptors);
         return;
     }
-
+　　 //Step-4:最后在用RANSAC方法筛选特征点
     // Further remove outliers by RANSAC.
     vector<Point2f> prev_tracked_unpts(prev_tracked_points.size());
     vector<Point2f> curr_tracked_unpts(curr_tracked_points.size());
