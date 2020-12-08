@@ -42,6 +42,7 @@ class LarVio {
     LarVio(std::string& config_file_);
     // Disable copy and assign constructor
     LarVio(const LarVio&) = delete;
+    //KDQ: use "=" for assignment is not allowed
     LarVio operator=(const LarVio&) = delete;
 
     // Destructor
