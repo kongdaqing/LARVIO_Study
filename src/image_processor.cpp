@@ -24,7 +24,7 @@ using namespace Eigen;
 
 namespace larvio {
 
-
+//KDQ:ImageProcessor函数成员中有大量的重复代码，不是太好
 ImageProcessor::ImageProcessor(std::string& config_file_) :
         config_file(config_file_) {
     image_state = FIRST_IMAGE;
@@ -190,6 +190,7 @@ bool ImageProcessor::processImage(const ImageDataPtr& msg,
         // Track new features extracted in last image, and add them into the gird
         trackNewFeatures();
 
+        //KDQ:控制提取新点的频率
         // frequency control
         if ( curr_img_time-last_pub_time >= 0.9*(1.0/processor_config.pub_frequency) ) {
             // Find new features to be tracked
@@ -356,7 +357,7 @@ bool ImageProcessor::initializeFirstFrame() {
         return false;
 }
 
-
+//KDQ:所有实现原理同trackFeatures()，感觉可以复用，没必要这样
 bool ImageProcessor::initializeFirstFeatures(
         const std::vector<ImuData>& imu_msg_buffer) {
 
@@ -367,7 +368,7 @@ bool ImageProcessor::initializeFirstFeatures(
     vector<Point2f> curr_pts(0);
     predictFeatureTracking(
         new_pts_, R_Prev2Curr, cam_intrinsics, curr_pts);
-
+    
     // Using LK optical flow to track feaures
     vector<unsigned char> track_inliers(new_pts_.size());
     calcOpticalFlowPyrLK(

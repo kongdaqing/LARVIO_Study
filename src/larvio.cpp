@@ -373,6 +373,7 @@ bool LarVio::processFeatures(MonoCameraMeasurementPtr msg,
 
   // Return if the gravity vector has not been set.
   if (!is_gravity_set) {
+      //KDQ:根据图像特征点位置变化判断是否采用静态初始化方案--初始化陀螺仪零偏和姿态
       if (flexInitPtr->tryIncInit(imu_msg_buffer, msg,
               m_gyro_old, m_acc_old, state_server.imu_state)) {
         is_gravity_set = true;

@@ -65,6 +65,7 @@ bool StaticInitializer::tryIncInit(const std::vector<ImuData>& imu_msg_buffer,
   // set take_off_stamp as time of the No.static_Num image
   // set initial imu_state as the state of No.static_Num image
   // earse imu data with timestamp earlier than the No.static_Num image
+  //KDQ:通过判断特征点在多帧中位置没有太大变化，认为当前机体处于静止状态，则用初始化imu的bias和姿态信息
   initializeGravityAndBias(img_msg->timeStampToSec+td, imu_msg_buffer);
 
   bInit = true;
@@ -85,7 +86,7 @@ void StaticInitializer::initializeGravityAndBias(const double& time_bound,
     double imu_time = imu_msg.timeStampToSec;
     if (imu_time < lower_time_bound) continue;
     if (imu_time > time_bound) break;
-
+　　 //KDQ:这里需要校准一下IMU,获得相关内参矩阵，否则使用默认值
     sum_angular_vel += Tg*(imu_msg.angular_velocity-As*Ma*imu_msg.linear_acceleration);
     sum_linear_acc += Ma*imu_msg.linear_acceleration;
 
