@@ -479,6 +479,7 @@ void LarVio::batchImuProcessing(const double& time_bound,
       ++used_imu_msg_cntr;
       continue;
     }
+    //KDQ:imu时间戳大于图像时间戳，则停止
     if ( imu_time-time_bound > imu_img_timeTh ) {
       break;   // threshold is adjusted according to the imu frequency
     }
@@ -535,10 +536,12 @@ void LarVio::processModel(const double& time,
   double dtime = time - imu_state.time;
 
   // Propagate the state using 4th order Runge-Kutta
+  //KDQ:一般状态预测可以使用euler积分，中值积分和[４阶Runge-Kutta法](https://zhuanlan.zhihu.com/p/76794930)，计算量依次增加，精度也依次提高
   predictNewState(dtime, gyro, acc);                        // 虚假的LK4
   // predictNewState_(dtime, gyro, acc, gyro_old, acc_old);    // 真实的LK4
 
   // Compute error state transition matrix
+  //KDQ:更新误差状态转移矩阵
   MatrixXd Phi;
   calPhi(Phi, dtime, f, w, acc, gyro, f_old, w_old, acc_old, gyro_old);
 
@@ -546,6 +549,7 @@ void LarVio::processModel(const double& time,
   Matrix3d C_bk2w = Quaterniond(qk(3),qk(0),qk(1),qk(2)).toRotationMatrix();
 
   // Propogate the state covariance matrix.
+  //KDQ:更新协方差矩阵
   MatrixXd G = MatrixXd::Zero(LEG_DIM, 12);    
   G.block<3, 3>(0, 0) = -C_bk2w;
   G.block<3, 3>(3, 3) = -C_bk2w;
@@ -555,7 +559,7 @@ void LarVio::processModel(const double& time,
     G.transpose()*Phi.transpose()*dtime;        
   state_server.state_cov.block(0, 0, LEG_DIM, LEG_DIM) =  
     Phi*state_server.state_cov.block(0, 0, LEG_DIM, LEG_DIM)*Phi.transpose() + Q;
-
+　//? KDQ: 这里是在干嘛？
   if (state_server.state_cov.cols() > LEG_DIM) {	
     state_server.state_cov.block(
         0, LEG_DIM, LEG_DIM, state_server.state_cov.cols()-LEG_DIM) =
@@ -567,6 +571,7 @@ void LarVio::processModel(const double& time,
         LEG_DIM, 0, state_server.state_cov.rows()-LEG_DIM, LEG_DIM) * Phi.transpose();
   }
 
+　//KDQ:确保协方差对称性
   MatrixXd state_cov_fixed = (state_server.state_cov +
       state_server.state_cov.transpose()) / 2.0;  	
   state_server.state_cov = state_cov_fixed;
@@ -3493,6 +3498,7 @@ void LarVio::calPhi(Eigen::MatrixXd& Phi, const double& dtime,
   Matrix3d TA = state_server.Tg*state_server.As;
 
   // Simple blocks
+  //? KDQ:这里如果使用FEJ，更新误差转移矩阵使用的状态量是不一样的，关注一下FEJ原理
   Vector3d vk = (if_FEJ ?
       state_server.imu_state_FEJ_old.velocity :
       state_server.imu_state_old.velocity);
@@ -3530,6 +3536,7 @@ void LarVio::calPhi(Eigen::MatrixXd& Phi, const double& dtime,
           Phi.block<3,3>(6,9)*TA*state_server.Ma;
 
   // Fill in corresponding blocks if calibrate IMU instrinsic
+  //! KDQ:打开imu内参校准要计算这么多东西，计算量应该会增加不少，这个可以研究一下
   if (calib_imu) {
     // Symbol simplification
     Matrix3d WL_k = Matrix3d::Zero();
