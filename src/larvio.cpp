@@ -370,7 +370,7 @@ bool LarVio::processFeatures(MonoCameraMeasurementPtr msg,
       else
           return false;
   }
-
+  // YZ: 初始化
   // Return if the gravity vector has not been set.
   if (!is_gravity_set) {
       if (flexInitPtr->tryIncInit(imu_msg_buffer, msg,
@@ -390,24 +390,30 @@ bool LarVio::processFeatures(MonoCameraMeasurementPtr msg,
         return false;		
   }
 
+  // YZ: IMU预积分
   // Propogate the IMU state.
   // that are received before the image msg.
   batchImuProcessing(msg->timeStampToSec+state_server.td, imu_msg_buffer);
 
+  // YZ: 添加特征点
   // Add new observations for existing features or new
   // features in the map server.
   addFeatureObservations(msg);
 
+  // YZ: 扩大状态量
   // Augment the state vector. 
   stateAugmentation();
 
+  // YZ: ZUPT校正
   // Check if a zero velocity update is happened
   if (if_ZUPT_valid)
       if_ZUPT = checkZUPT();
 
+  // YZ: 剔除特征点
   // Perform measurement update if necessary.
   removeLostFeatures();
 
+  // YZ: 删除旧的IMU状态
   // Delete old imu state if necessary.
   pruneImuStateBuffer();
 
@@ -952,13 +958,14 @@ void LarVio::featureJacobian_msckf(
     Matrix<double, 2, 6> H_ei = Matrix<double, 2, 6>::Zero();
     Matrix<double, 2, 3> H_fi = Matrix<double, 2, 3>::Zero();
     Vector2d r_i = Vector2d::Zero();
+    // YZ: 单个特征点的雅克比和残差
     measurementJacobian_msckf(state_id, feature.id,
       H_xi, H_ei, H_fi, r_i);   
 
     auto state_iter = state_server.imu_states_augment.find(state_id);
     int state_cntr = std::distance(
             state_server.imu_states_augment.begin(), state_iter);  
-
+    // YZ: 所有特征点的雅克比和残差
     // Stack the Jacobians.
     H_xj.block<2, 6>(stack_cntr, LEG_DIM+6*state_cntr) = H_xi;
     H_xj.block<2, 6>(stack_cntr, 15) = H_ei;
@@ -968,7 +975,7 @@ void LarVio::featureJacobian_msckf(
     r_j.segment<2>(stack_cntr) = r_i;
     stack_cntr += 2;
   }
-
+  // YZ: 利用左零空间消除特征点雅克比，只保留状态量雅克比，因为状态量中不包含特征点
   // Project the residual and Jacobians onto the nullspace of H_fj.
   JacobiSVD<MatrixXd> svd_helper(H_fj, ComputeFullU | ComputeThinV);
   MatrixXd A = svd_helper.matrixU().rightCols(
@@ -2238,7 +2245,7 @@ void LarVio::removeLostFeatures() {
 
     // Delete redundant features in grid map
     // delRedundantFeatures();
-  } else {
+  } else { // YZ： ZUPT
     for (int i = 0; i < msckf_feature_ids.size(); i++) {
       auto feature_id = msckf_feature_ids[i];
       map_server[feature_id].is_initialized = false;
@@ -2258,7 +2265,7 @@ void LarVio::removeLostFeatures() {
 
 void LarVio::findRedundantImuStates(
     vector<StateIDType>& rm_state_ids) {
-
+  // YZ: 取imu_states_augment中倒数第四个状态为关键状态
   // Move the iterator to the key position.
   auto key_state_iter = state_server.imu_states_augment.end();
   for (int i = 0; i < 4; ++i)
@@ -2376,7 +2383,7 @@ void LarVio::pruneImuStateBuffer() {
             feature.invParam(2) = 1/p_new(2);
             updateFeatureCov_3didp(feature.id,
               feature.id_anchor, new_id);
-          } else {
+          } else { // YZ: feature_idp_dim = 1
             // New anchor ID.
             new_id = getNewAnchorId(feature, involved_state_ids);
             // new_id = state_server.imu_state.id;
@@ -2404,7 +2411,7 @@ void LarVio::pruneImuStateBuffer() {
           feature.id_anchor = new_id;
         }
       }
-    } else {
+    } else { // YZ: feature not in state
       if (feature.is_initialized) { 
         vector<StateIDType>::iterator it = find(
           involved_state_ids.begin(), involved_state_ids.end(), feature.id_anchor);

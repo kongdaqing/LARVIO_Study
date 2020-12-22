@@ -162,7 +162,7 @@ bool ImageProcessor::processImage(const ImageDataPtr& msg,
     } else if ( SECOND_IMAGE==image_state ) {
         if ( !initializeFirstFeatures(imu_msg_buffer) ) {
             image_state = FIRST_IMAGE;
-        } else {
+        } else {                                                                          
             // frequency control
             if ( curr_img_time-last_pub_time >= 0.9*(1.0/processor_config.pub_frequency) ) {
                 // Find new features to be tracked
@@ -355,14 +355,17 @@ bool ImageProcessor::initializeFirstFrame() {
 bool ImageProcessor::initializeFirstFeatures(
         const std::vector<ImuData>& imu_msg_buffer) {
 
+    // YZ: IMU积分得到两帧间旋转
     // Integrate gyro data to get a guess of ratation between current and previous image
     integrateImuData(R_Prev2Curr, imu_msg_buffer);
 
+    // YZ: 利用IMU旋转预测待跟踪的特征点，这里忽略了两帧之间的平移
     // Pridict features in current image
     vector<Point2f> curr_pts(0);
     predictFeatureTracking(
         new_pts_, R_Prev2Curr, cam_intrinsics, curr_pts);
 
+    // YZ: 利用光流法跟踪特征点
     // Using LK optical flow to track feaures
     vector<unsigned char> track_inliers(new_pts_.size());
     calcOpticalFlowPyrLK(
@@ -376,6 +379,7 @@ bool ImageProcessor::initializeFirstFeatures(
             processor_config.track_precision),
         cv::OPTFLOW_USE_INITIAL_FLOW);
 
+    // YZ: 图像外的点设置为外点
     // Mark those tracked points out of the image region
     // as untracked.
     for (int i = 0; i < curr_pts.size(); ++i) {  
@@ -386,7 +390,7 @@ bool ImageProcessor::initializeFirstFeatures(
             curr_pts[i].x > curr_img_ptr->image.cols-1)
             track_inliers[i] = 0;
     }
-
+    // YZ :剔除外点
     // Remove outliers
     vector<Point2f> prev_pts_inImg_(0);
     vector<Point2f> curr_pts_inImg_(0);
@@ -398,7 +402,7 @@ bool ImageProcessor::initializeFirstFeatures(
     // Return if not enough inliers
     if ( prev_pts_inImg_.size()<20 )
         return false;
-
+    // YZ: 反向LK光流跟踪
     // Using reverse LK optical flow tracking to eliminate outliers
     vector<unsigned char> reverse_inliers(curr_pts_inImg_.size());
     vector<Point2f> prev_pts_cpy(prev_pts_inImg_);
@@ -437,7 +441,7 @@ bool ImageProcessor::initializeFirstFeatures(
     // Return if not enough inliers
     if ( prev_pts_inImg.size()<20 )
         return false;
-
+    // YZ: 计算汉明距离，大于阈值，设为外点
     // Mark as outliers if descriptor distance is too large
     vector<int> levels(prev_pts_inImg.size(), 0);
     Mat prevDescriptors, currDescriptors;
@@ -472,7 +476,7 @@ bool ImageProcessor::initializeFirstFeatures(
     // Return if not enough inliers
     if ( prev_pts_inlier.size()<20 )
         return false;
-
+    // YZ: 去畸变
     // Undistort inliers
     vector<Point2f> prev_unpts_inlier(prev_pts_inlier.size());
     vector<Point2f> curr_unpts_inlier(curr_pts_inlier.size());
@@ -484,7 +488,7 @@ bool ImageProcessor::initializeFirstFeatures(
             curr_pts_inlier, cam_intrinsics, cam_distortion_model,
             cam_distortion_coeffs, curr_unpts_inlier, 
             cv::Matx33d::eye(), cam_intrinsics);
-
+    // YZ: RANCAC剔除错误匹配
     vector<unsigned char> ransac_inliers;
 
     float fx = cam_intrinsics[0];
