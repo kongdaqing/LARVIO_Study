@@ -16,7 +16,7 @@
       <remap from="~imu" to="/imu0"/>
       <remap from="~cam0_image" to="/cam0/image_raw"/>
 
-      <param name="config_file" value="$(find larvio)/../../../config/zerozero.yaml"/>
+      <param name="config_file" value="$(find larvio)/../../../config/cheerios35.yaml"/>
 
     </node>
   </group>
