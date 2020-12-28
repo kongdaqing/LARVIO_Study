@@ -93,6 +93,12 @@ bool LarVio::loadParameters() {
   imu_gyro_bias_noise = fsSettings["noise_gyro_bias"];
   imu_acc_bias_noise = fsSettings["noise_acc_bias"];
   feature_observation_noise = fsSettings["noise_feature"];  
+  printf("imu_gyro_noise = %f\n",imu_gyro_noise);
+  printf("imu_acc_noise = %f\n",imu_acc_noise);
+  printf("imu_gyro_bias_noise = %f\n",imu_gyro_bias_noise);
+  printf("imu_acc_bias_noise = %f\n",imu_acc_bias_noise);
+  printf("feature_observation_noise = %f\n",feature_observation_noise);
+
 
   // Use variance instead of standard deviation.
   imu_gyro_noise *= imu_gyro_noise;
