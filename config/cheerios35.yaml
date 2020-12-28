@@ -4,9 +4,9 @@
 output_dir: "/root/larvio_results/"
 
 # switches
-if_FEJ: 1    # 0(false) or 1(true)
+if_FEJ: 0    # 0(false) or 1(true)
 estimate_extrin: 1    # 0(false) or 1(true)
-estimate_td: 1    # 0(false) or 1(true)
+estimate_td: 0    # 0(false) or 1(true)
 calib_imu_instrinsic: 0    # 0(false) or 1(true)
 
 # camera instrinsic
@@ -30,9 +30,9 @@ T_cam_imu: !!opencv-matrix
    cols: 4
    dt: d
    data:
-    [1.0, 0.0, 0.0, -0.066  
-     0.0, 1.0, 0.0,  0.0
-     0.0, 0.0, 1.0,  0.0
+    [1.0, 0.0, 0.0,  0.066,  
+     0.0, 1.0, 0.0,  0.0,
+     0.0, 0.0, 1.0,  0.0,
      0.0, 0.0, 0.0,  1.0]
 td: 0.018
 
@@ -40,14 +40,14 @@ td: 0.018
 
 # visual front-end parameters
 pyramid_levels: 2
-patch_size: 21
-fast_threshold: 30
+patch_size: 11
+fast_threshold: 10
 max_iteration: 30
 track_precision: 0.01
 ransac_threshold: 1
-max_features_num: 200
+max_features_num: 150
 min_distance: 20
-flag_equalize: 1    # 0(false) or 1(true)
+flag_equalize: 0    # 0(false) or 1(true)-clahe直方图均衡化
 pub_frequency: 10
 
 # window size
@@ -65,26 +65,26 @@ max_track_len: 6
 feature_translation_threshold: -1.0
 
 # imu and camera measurement noise parameters
-noise_gyro: 0.004
-noise_acc: 0.08
-noise_gyro_bias: 2e-6
-noise_acc_bias: 4e-5
-noise_feature: 0.008
+noise_gyro: 0.01
+noise_acc: 0.2
+noise_gyro_bias: 2e-4
+noise_acc_bias: 4e-3
+noise_feature: 0.001
 
 # filter intial covariance
 initial_covariance_orientation: 4e-4
-initial_covariance_velocity: 0.25
+initial_covariance_velocity: 1.0
 initial_covariance_position: 1.0
 initial_covariance_gyro_bias: 4e-4
 initial_covariance_acc_bias: 0.01
-initial_covariance_extrin_rot: 3.0462e-8
-initial_covariance_extrin_trans: 9e-8
+initial_covariance_extrin_rot: 3.0462e-5
+initial_covariance_extrin_trans: 9e-5
 
 # fej settings
 reset_fej_threshold: 10.11
 
 # zupt settings
-if_ZUPT_valid: 1    # 0(false) or 1(true)
+if_ZUPT_valid: 0    # 0(false) or 1(true)
 zupt_max_feature_dis: 2e-3
 zupt_noise_v: 1e-2    # std
 zupt_noise_p: 1e-2
@@ -94,8 +94,8 @@ zupt_noise_q: 3.4e-2
 static_duration: 1.0
 
 # measurement rate
-imu_rate: 200
-img_rate: 20
+imu_rate: 500
+img_rate: 30
 
 # augmented feature state settings
 max_features_in_one_grid: 1     # pure msckf if set to 0
